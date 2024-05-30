@@ -9,7 +9,7 @@ from utils.tools import resize_image, load_json
 import pdf2image
 import time
 import os
-
+import gzip
 
 def download(url_file):
     # get paper ids
@@ -52,9 +52,19 @@ def download(url_file):
                 paper = next(arxiv.Search(id_list=["hep-th/0001001v2"]).results())
                 paper.download_source(dirpath="temp", filename="temp.tar.gz")
                 """)
-            tar = tarfile.open(temp/"temp.tar.gz", "r:gz")
-            tar.extractall(temp)
-            tar.close()
+            # tar = tarfile.open(temp/"temp.tar.gz")
+            # tar.extractall(temp)
+            # tar.close()
+            try:
+                # 尝试作为 tar 文件打开
+                tar = tarfile.open(temp/"temp.tar.gz", "r:gz")
+                tar.extractall(temp)
+                tar.close()
+            except tarfile.ReadError:
+                # 如果作为 tar 文件打开失败，尝试作为单个的 gzip 压缩的文件处理
+                with gzip.open(temp/"temp.tar.gz", 'rb') as f_in:
+                    with open(temp/"temp.tex", 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
             # rename largest tex file
             tex_files = sorted(temp.glob('*.tex'))
             if len(tex_files) > 0:
